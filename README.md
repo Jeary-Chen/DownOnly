@@ -146,7 +146,38 @@ sudo systemctl status downonly
 在浏览器中输入：`http://你的设备IP:8080`
 
 ---
+#### 方式三：Docker 部署
 
+**Docker Run 运行：**
+
+```bash
+docker run -d \
+  --name downonly \
+  -p 8080:8080 \
+  -v /opt/downonly/data:/app/data \
+  --restart always \
+  ghcr.io/echoping07/downonly:latest
+```
+
+**Docker Compose 运行：**
+
+```yaml
+services:
+  downonly:
+    image: ghcr.io/echoping07/downonly:latest
+    container_name: downonly
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    restart: always
+```
+运行命令：
+```bash
+docker-compose up -d
+```
+
+---
 ## 🎮 管理命令
 
 安装完成后，可以通过以下命令管理服务：
