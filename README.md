@@ -161,6 +161,7 @@ docker run -d \
 
 **Docker Compose 运行：**
 
+创建 `docker-compose.yml` 文件：
 ```yaml
 services:
   downonly:
