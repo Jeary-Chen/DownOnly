@@ -146,7 +146,7 @@ sudo systemctl status downonly
 在浏览器中输入：`http://你的设备IP:8080`
 
 ---
-#### 方式三：Docker 部署
+### 方式三：Docker 部署
 
 **Docker Run 运行：**
 
