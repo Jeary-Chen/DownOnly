@@ -36,6 +36,7 @@
 - **时间窗口**：自定义每日运行时间段（如仅在 18:00 - 23:00 运行）
 - **限额保护**：设置每日流量封顶值，达到后自动待机
 - **伪装技术**：随机化 User-Agent + 多源轮换，模拟正常用户行为
+- **休息间隔**：自定义两次下载任务之间的随机等待时长的范围
 
 ### 🎨 现代化 WebUI
 - **深色/浅色模式** 自由切换
@@ -62,7 +63,16 @@ curl -fsSL https://raw.githubusercontent.com/EchoPing07/DownOnly/main/install.sh
 
 **安装完成后：**
 - 访问地址：`http://你的设备IP:8080`
-- 管理命令：直接输入 `downonly` 呼出管理菜单
+- 管理命令：直接输入 `downonly` 呼出可视化管理菜单
+
+**管理菜单选项：**
+- `1` - 启动服务
+- `2` - 停止服务
+- `3` - 重启服务
+- `4` - 查看实时日志
+- `5` - 更新至最新版本
+- `6` - 卸载程序
+- `0` - 退出菜单
 
 ---
 
@@ -148,7 +158,15 @@ sudo systemctl status downonly
 ---
 ### 方式三：Docker 部署
 
-**Docker Run 运行：**
+**GHCR** 地址：
+https://github.com/EchoPing07/DownOnly/pkgs/container/downonly
+
+**Docker Hub** 地址：
+https://hub.docker.com/r/echoping/downonly
+
+以下模板使用 **GHCR** 仓库地址演示
+
+#### Docker Run 运行：
 
 ```bash
 docker run -d \
@@ -159,7 +177,7 @@ docker run -d \
   ghcr.io/echoping07/downonly:latest
 ```
 
-**Docker Compose 运行：**
+#### Docker Compose 运行：
 
 创建 `docker-compose.yml` 文件：
 ```yaml
@@ -177,24 +195,6 @@ services:
 ```bash
 docker-compose up -d
 ```
-
----
-## 🎮 管理命令
-
-安装完成后，可以通过以下命令管理服务：
-
-```bash
-downonly  # 呼出可视化管理菜单
-```
-
-**菜单选项：**
-- `1` - 启动服务
-- `2` - 停止服务
-- `3` - 重启服务
-- `4` - 查看实时日志
-- `5` - 在线更新到最新版本
-- `6` - 卸载程序
-- `0` - 退出菜单
 
 ---
 
