@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 )
@@ -59,12 +60,16 @@ type App struct {
 	stats  Stats
 	logs   LogStore
 
-	isRunning       bool
-	status          string
-	speedMbps       float64
-	speedHistory    []float64
-	startedAt       time.Time
-	bytesThisSecond uint64
+	isRunning    bool
+	status       string
+	speedMbps    float64
+	speedHistory []float64
+	startedAt    time.Time
+
+	// [FIX-3] 用 atomic 避免高频加锁
+	bytesThisSecond atomic.Uint64
+	// [FIX-3] 限速值热更新：下载循环实时读取
+	currentSpeedLimit atomic.Int64
 }
 
 // ==================== 持久化 ====================
@@ -92,6 +97,9 @@ func (app *App) loadConfig() {
 }
 
 func (app *App) fixConfig() {
+	if app.config.SpeedLimitMbps <= 0 {
+		app.config.SpeedLimitMbps = 5
+	}
 	if app.config.DailyQuotaMinGB <= 0 {
 		app.config.DailyQuotaMinGB = 150
 	}
@@ -110,6 +118,8 @@ func (app *App) fixConfig() {
 	if app.config.SleepMaxMinutes < app.config.SleepMinMinutes {
 		app.config.SleepMaxMinutes = app.config.SleepMinMinutes
 	}
+	// [FIX-3] 同步到 atomic
+	app.currentSpeedLimit.Store(int64(app.config.SpeedLimitMbps))
 }
 
 func (app *App) saveConfig() {
@@ -184,16 +194,13 @@ func (app *App) checkDateChange() {
 	if app.stats.TodayDate == today {
 		return
 	}
-	// 归档昨天
 	if app.stats.TodayDate != "" && app.stats.TodayBytes > 0 {
 		app.stats.Daily[app.stats.TodayDate] = app.stats.TodayBytes
 	}
 	app.stats.TodayBytes = 0
 	app.stats.TodayDate = today
 	app.addLog("日期更新，流量计数器已重置")
-	// 新的一天，重新随机额度
 	app.rollTodayQuota()
-	// 年度清理
 	thisYear := time.Now().Format("2006")
 	for k := range app.stats.Daily {
 		if !strings.HasPrefix(k, thisYear) {
@@ -226,7 +233,7 @@ func (app *App) isQuotaReached() bool {
 	if app.stats.TodayQuotaGB <= 0 {
 		return false
 	}
-	return app.stats.TodayBytes >= uint64(app.stats.TodayQuotaGB)*1e9
+	return app.stats.TodayBytes >= uint64(app.stats.TodayQuotaGB)*1_000_000_000
 }
 
 func (app *App) sleepWithCheck(seconds int) {
@@ -275,7 +282,6 @@ func (app *App) downloadWorker() {
 		}
 		urls := make([]string, len(app.config.URLs))
 		copy(urls, app.config.URLs)
-		speedLimit := app.config.SpeedLimitMbps
 		sleepMin := app.config.SleepMinMinutes
 		sleepMax := app.config.SleepMaxMinutes
 		app.mu.Unlock()
@@ -296,7 +302,7 @@ func (app *App) downloadWorker() {
 		app.addLog("开始下载: " + truncateURL(url))
 		app.mu.Unlock()
 
-		downloaded, err := app.doDownload(url, speedLimit)
+		downloaded, err := app.doDownload(url)
 
 		app.mu.Lock()
 		if err != nil {
@@ -329,7 +335,8 @@ func (app *App) downloadWorker() {
 	}
 }
 
-func (app *App) doDownload(url string, speedLimitMbps int) (uint64, error) {
+// [FIX-3] doDownload 不再传入 speedLimit 参数，实时从 atomic 读取
+func (app *App) doDownload(url string) (uint64, error) {
 	client := &http.Client{Timeout: 60 * time.Minute}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -348,13 +355,13 @@ func (app *App) doDownload(url string, speedLimitMbps int) (uint64, error) {
 		return 0, fmt.Errorf("HTTP %d", resp.StatusCode)
 	}
 
-	bytesPerSec := int64(speedLimitMbps) * 1000000 / 8
 	buf := make([]byte, 32*1024)
 	var total uint64
 	var windowBytes int64
 	windowStart := time.Now()
 
 	for {
+		// 检查停止和配额
 		app.mu.Lock()
 		running := app.isRunning
 		quota := app.isQuotaReached()
@@ -368,10 +375,15 @@ func (app *App) doDownload(url string, speedLimitMbps int) (uint64, error) {
 			total += uint64(n)
 			windowBytes += int64(n)
 
+			// [FIX-3] 用 atomic 更新
 			app.mu.Lock()
 			app.stats.TodayBytes += uint64(n)
-			app.bytesThisSecond += uint64(n)
 			app.mu.Unlock()
+			app.bytesThisSecond.Add(uint64(n))
+
+			// [FIX-3] 实时读取限速值
+			speedLimitMbps := app.currentSpeedLimit.Load()
+			bytesPerSec := speedLimitMbps * 1_000_000 / 8
 
 			elapsed := time.Since(windowStart)
 			expected := time.Duration(float64(windowBytes) / float64(bytesPerSec) * float64(time.Second))
@@ -398,8 +410,10 @@ func (app *App) speedTracker() {
 	for range time.NewTicker(time.Second).C {
 		app.mu.Lock()
 		app.checkDateChange()
-		bytes := app.bytesThisSecond
-		app.bytesThisSecond = 0
+
+		// [FIX-3] 从 atomic 读取
+		bytes := app.bytesThisSecond.Swap(0)
+
 		mbps := float64(bytes) * 8 / 1e6
 		if !app.isRunning {
 			mbps = 0
@@ -460,6 +474,9 @@ func (app *App) handleToggle(w http.ResponseWriter, r *http.Request) {
 		app.speedMbps = 0
 		app.addLog("服务已停止")
 	}
+	// 启停时立即保存，防止意外丢失
+	app.saveStats()
+	app.saveLogs()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]bool{"is_running": app.isRunning})
 }
@@ -510,13 +527,12 @@ func (app *App) handleConfig(w http.ResponseWriter, r *http.Request) {
 		}
 		app.mu.Lock()
 		app.config = cfg
-		app.fixConfig()
+		app.fixConfig() // fixConfig 内部会同步 currentSpeedLimit
 		app.saveConfig()
 		app.addLog(fmt.Sprintf("配置已更新: %d Mbps, %d~%d GB/天, %s-%s, 休息 %d~%d 分钟",
-			cfg.SpeedLimitMbps, app.config.DailyQuotaMinGB, app.config.DailyQuotaMaxGB,
-			cfg.ScheduleStart, cfg.ScheduleEnd,
+			app.config.SpeedLimitMbps, app.config.DailyQuotaMinGB, app.config.DailyQuotaMaxGB,
+			app.config.ScheduleStart, app.config.ScheduleEnd,
 			app.config.SleepMinMinutes, app.config.SleepMaxMinutes))
-		// 如果当前额度不在新范围内，重新生成
 		if app.stats.TodayQuotaGB < app.config.DailyQuotaMinGB || app.stats.TodayQuotaGB > app.config.DailyQuotaMaxGB {
 			app.rollTodayQuota()
 		}
@@ -542,11 +558,11 @@ func truncateURL(u string) string {
 
 func formatBytes(b uint64) string {
 	switch {
-	case b >= 1e12:
+	case b >= 1_000_000_000_000:
 		return fmt.Sprintf("%.2f TB", float64(b)/1e12)
-	case b >= 1e9:
+	case b >= 1_000_000_000:
 		return fmt.Sprintf("%.2f GB", float64(b)/1e9)
-	case b >= 1e6:
+	case b >= 1_000_000:
 		return fmt.Sprintf("%.2f MB", float64(b)/1e6)
 	default:
 		return fmt.Sprintf("%d B", b)
@@ -567,7 +583,6 @@ func main() {
 	app.loadStats()
 	app.loadLogs()
 
-	// 首次启动或新的一天：生成今日额度
 	if app.stats.TodayQuotaGB <= 0 {
 		app.rollTodayQuota()
 	}

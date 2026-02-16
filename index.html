@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN" class="light">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DownOnly</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg width='512' height='512' viewBox='0 0 512 512' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='512' height='512' rx='112' fill='%233b82f6'/%3E%3Cg stroke='%23ffffff' stroke-width='28' stroke-linecap='round'%3E%3Cpath d='M120 256C120 180.89 180.89 120 256 120C300 120 338 140 365 172' /%3E%3Cpath d='M392 256C392 331.11 331.11 392 256 392C212 392 174 372 147 340' /%3E%3Cpath d='M185 256C185 216.79 216.79 185 256 185C280 185 302 198 315 218' /%3E%3Cpath d='M327 256C327 295.21 295.21 327 256 327C232 327 210 314 197 294' /%3E%3Ccircle cx='256' cy='256' r='14' fill='%23ffffff' stroke='none'/%3E%3C/g%3E%3C/svg%3E">
+    <script>(function(){var t=localStorage.getItem('downonly-theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}})();</script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -58,7 +59,6 @@
     <!-- 主内容 -->
     <main class="flex-1 max-w-5xl mx-auto px-4 py-8 w-full space-y-6">
         <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- 系统状态 -->
             <div class="bg-white dark:bg-cardDark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden h-48 flex flex-col justify-between">
                 <div class="z-10">
                     <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">运行状态</h2>
@@ -78,7 +78,6 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 11l5 5l5 -5"/><path d="M12 4l0 12"/></svg>
                 </div>
             </div>
-            <!-- 今日消耗 -->
             <div class="md:col-span-2 bg-white dark:bg-cardDark p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between h-48">
                 <div class="flex justify-between items-start">
                     <div>
@@ -99,7 +98,6 @@
             </div>
         </section>
 
-        <!-- 本月历史 -->
         <section class="bg-white dark:bg-cardDark p-6 md:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
             <div class="flex justify-between items-start mb-8">
                 <div>
@@ -150,7 +148,6 @@
                 </button>
             </div>
             <div class="p-6 space-y-6">
-                <!-- 限速 -->
                 <div>
                     <div class="flex justify-between items-baseline px-1 mb-3">
                         <span class="text-[11px] font-bold text-slate-400 uppercase">下载速率限制</span>
@@ -161,9 +158,8 @@
                         <span>1 Mbps</span><span>256 Mbps</span>
                     </div>
                 </div>
-                <!-- 每日限额（随机区间） -->
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 px-1">每日流量区间</label>
+                    <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 px-1">每日限额区间</label>
                     <div class="flex items-center gap-3">
                         <div class="flex-1 relative">
                             <input id="conf-quota-min" type="number" value="150" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-center focus:ring-1 focus:ring-primary focus:border-primary outline-none">
@@ -176,7 +172,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- 运行时间 -->
                 <div>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 px-1">运行时间</label>
                     <div class="flex items-center gap-3">
@@ -185,22 +180,20 @@
                         <input id="conf-end" type="time" value="23:59" class="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-center focus:ring-1 focus:ring-primary focus:border-primary outline-none">
                     </div>
                 </div>
-                <!-- 休息间隔 -->
                 <div>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 px-1">休息间隔</label>
                     <div class="flex items-center gap-3">
                         <div class="flex-1 relative">
                             <input id="conf-sleep-min" type="number" value="10" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-center focus:ring-1 focus:ring-primary focus:border-primary outline-none">
-                            <span class="absolute right-3 top-3.5 text-[10px] font-bold text-slate-300">分钟</span>
+                            <span class="absolute right-3 top-3.5 text-[10px] font-bold text-slate-300">min</span>
                         </div>
                         <span class="text-slate-300 text-sm font-bold">至</span>
                         <div class="flex-1 relative">
                             <input id="conf-sleep-max" type="number" value="20" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-3 text-sm font-bold text-center focus:ring-1 focus:ring-primary focus:border-primary outline-none">
-                            <span class="absolute right-3 top-3.5 text-[10px] font-bold text-slate-300">分钟</span>
+                            <span class="absolute right-3 top-3.5 text-[10px] font-bold text-slate-300">min</span>
                         </div>
                     </div>
                 </div>
-                <!-- 下载源 -->
                 <div>
                     <label class="block text-[11px] font-bold text-slate-400 uppercase mb-2 px-1">资源地址（每行一个）</label>
                     <textarea id="conf-urls" class="w-full h-28 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 text-xs font-mono leading-relaxed resize-none focus:ring-1 focus:ring-primary focus:border-primary outline-none" placeholder="每行填入一个下载直链..."></textarea>
@@ -228,6 +221,7 @@
 
         let liveChart, historyChart;
         let currentMonth = new Date().getMonth() + 1;
+        let logRefreshTimer = null;
 
         function formatTraffic(bytes) {
             if (bytes >= 1e12) return { val: (bytes / 1e12).toFixed(2), unit: 'TB' };
@@ -235,7 +229,6 @@
             if (bytes >= 1e6)  return { val: (bytes / 1e6).toFixed(2),  unit: 'MB' };
             return { val: '0.00', unit: 'GB' };
         }
-
         function padTime(n) { return String(n).padStart(2, '0'); }
 
         function initCharts() {
@@ -372,18 +365,27 @@
             const modal = document.getElementById(id);
             const content = modal.querySelector('.modal-content');
             if (modal.classList.contains('hidden')) {
-                if (id === 'log-modal') loadLogs();
+                if (id === 'log-modal') {
+                    loadLogs();
+                    logRefreshTimer = setInterval(loadLogs, 3000);
+                }
                 if (id === 'config-modal') loadConfig();
                 modal.classList.remove('hidden');
                 setTimeout(() => { content.classList.remove('scale-95','opacity-0'); content.classList.add('scale-100','opacity-100'); }, 10);
             } else {
                 content.classList.remove('scale-100','opacity-100'); content.classList.add('scale-95','opacity-0');
+                if (id === 'log-modal' && logRefreshTimer) {
+                    clearInterval(logRefreshTimer);
+                    logRefreshTimer = null;
+                }
                 setTimeout(() => modal.classList.add('hidden'), 200);
             }
         }
 
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('downonly-theme', isDark ? 'dark' : 'light');
             initCharts();
             loadHistory(currentMonth);
         }
